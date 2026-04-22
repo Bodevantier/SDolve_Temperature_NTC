@@ -57,76 +57,12 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 extern UART_HandleTypeDef huart1;
-extern SPI_HandleTypeDef  hspi1;
 
 static ads1118_handle_t gs_handle;
 
 static void uart_print(const char *s)
 {
     HAL_UART_Transmit(&huart1, (uint8_t *)s, (uint16_t)strlen(s), 100);
-}
-
-/* Bit-bang SPI diagnostic: bypasses the SPI peripheral entirely.
- * Reconfigures PA5/PA6/PA7 as plain GPIO, manually clocks 16 bits,
- * reads MISO bit-by-bit, then restores SPI.
- * Result interpretation:
- *   rx=0xFFFF -> MISO physically stuck high = hardware problem (no power / bad solder)
- *   rx=anything else -> SPI peripheral was the issue, bit-bang works
- */
-static void bitbang_spi_diag(void)
-{
-    GPIO_InitTypeDef g = {0};
-    uint32_t rx16 = 0;
-    int i;
-    char buf[64];
-
-    HAL_SPI_DeInit(&hspi1);
-
-    /* SCK(PA5), MOSI(PA7) -> output */
-    g.Pin = GPIO_PIN_5 | GPIO_PIN_7;
-    g.Mode = GPIO_MODE_OUTPUT_PP;
-    g.Pull = GPIO_NOPULL;
-    g.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &g);
-
-    /* MISO(PA6) -> input, no pull */
-    g.Pin = GPIO_PIN_6;
-    g.Mode = GPIO_MODE_INPUT;
-    g.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &g);
-
-    /* idle: SCK=0, MOSI=1, CS=1 */
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(CS_ADC_GPIO_Port, CS_ADC_Pin, GPIO_PIN_SET);
-    HAL_Delay(5);
-
-    GPIO_PinState miso_idle = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6);
-
-    /* assert CS */
-    HAL_GPIO_WritePin(CS_ADC_GPIO_Port, CS_ADC_Pin, GPIO_PIN_RESET);
-    HAL_Delay(2);
-
-    GPIO_PinState miso_after_cs = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6);
-
-    /* clock 16 bits, Mode 0: sample MISO on rising edge */
-    for (i = 15; i >= 0; i--) {
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET); /* MOSI=1 */
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET); /* rising edge */
-        HAL_Delay(1);
-        if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_6) == GPIO_PIN_SET)
-            rx16 |= (1u << i);
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); /* falling edge */
-        HAL_Delay(1);
-    }
-
-    HAL_GPIO_WritePin(CS_ADC_GPIO_Port, CS_ADC_Pin, GPIO_PIN_SET); /* deassert CS */
-
-    snprintf(buf, sizeof(buf), "BBSPI: idle=%d cs=%d rx=0x%04lX\r\n",
-             (int)miso_idle, (int)miso_after_cs, rx16);
-    uart_print(buf);
-
-    MX_SPI1_Init(); /* restore hardware SPI */
 }
 
 static int ADS1118_Setup(void)
@@ -182,15 +118,7 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(500);
-
-  /* --- Bit-bang diagnostic: runs before ADS1118 init --- */
-  bitbang_spi_diag();
-
-  if (ADS1118_Setup() != 0) {
-      uart_print("ADS1118 init FAILED\r\n");
-  } else {
-      uart_print("ADS1118 init OK\r\n");
-  }
+  ADS1118_Setup();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -203,28 +131,12 @@ int main(void)
     int16_t raw = 0;
     float voltage = 0.0f;
     float temp_c = 0.0f;
-    float r_ntc = 0.0f;
-    char buf[80];
-    static uint8_t err_count = 0;
+    char buf[32];
 
     if (ads1118_continuous_read(&gs_handle, &raw, &voltage) == 0) {
-        err_count = 0;
-        r_ntc = NTC_R_SERIES_OHM * voltage / (NTC_VCC_V - voltage);
         if (NTC_VoltageToTemperature(voltage, &temp_c) == 0) {
-            snprintf(buf, sizeof(buf), "Temp: %.2f C  V=%.4f  R=%.0f  raw=%d\r\n",
-                     (double)temp_c, (double)voltage, (double)r_ntc, (int)raw);
-        } else {
-            snprintf(buf, sizeof(buf), "Temp: OUT_OF_RANGE  V=%.4f  R=%.0f  raw=%d\r\n",
-                     (double)voltage, (double)r_ntc, (int)raw);
-        }
-        uart_print(buf);
-    } else {
-        err_count++;
-        uart_print("ADS1118 read error\r\n");
-        if (err_count >= 3) {
-            err_count = 0;
-            uart_print("Re-initialising ADS1118...\r\n");
-            ADS1118_Setup();
+            snprintf(buf, sizeof(buf), "%.2f C\r\n", (double)temp_c);
+            uart_print(buf);
         }
     }
 
