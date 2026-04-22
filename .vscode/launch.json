@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "Normal",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/build/Debug/SDolve_Temperature_NTC.elf"
+                }
+            ],
+            "verbose": false
+        }
+    ]
+}
