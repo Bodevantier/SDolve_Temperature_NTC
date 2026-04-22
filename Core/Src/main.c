@@ -77,7 +77,7 @@ static int ADS1118_Setup(void)
     if (ads1118_init(&gs_handle) != 0) { return 1; }
     if (ads1118_set_channel(&gs_handle, ADS1118_CHANNEL_AIN0_GND) != 0) { return 1; }
     if (ads1118_set_range(&gs_handle, ADS1118_RANGE_4P096V) != 0) { return 1; }
-    if (ads1118_set_rate(&gs_handle, ADS1118_RATE_128SPS) != 0) { return 1; }
+    if (ads1118_set_rate(&gs_handle, ADS1118_RATE_8SPS) != 0) { return 1; }
     if (ads1118_set_mode(&gs_handle, ADS1118_MODE_ADC) != 0) { return 1; }
     if (ads1118_set_dout_pull_up(&gs_handle, ADS1118_BOOL_FALSE) != 0) { return 1; }
     if (ads1118_start_continuous_read(&gs_handle) != 0) { return 1; }
