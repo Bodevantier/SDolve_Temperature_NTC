@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
-# Enable CMake support for ASM and C languages
-enable_language(C ASM)
+# Enable CMake support for ASM, C and C++ languages
+enable_language(C CXX ASM)
 # STM32CubeMX generated symbols (macros)
 set(MX_Defines_Syms 
 	USE_HAL_DRIVER 
@@ -16,14 +16,18 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Device/ST/STM32F1xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../MIDWARE/ADS1118
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000_STM32-master
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/STM32_CAN-main
 )
 
 # STM32CubeMX generated application sources
 set(MX_Application_Src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/gpio.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/spi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/usart.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/can.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32f1xx_it.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/stm32f1xx_hal_msp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Src/sysmem.c
@@ -48,6 +52,7 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_exti.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_spi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_can.c
 )
 
 # Drivers Midllewares
@@ -60,6 +65,36 @@ target_sources(ADS1118 PRIVATE
 )
 target_link_libraries(ADS1118 PUBLIC stm32cubemx)
 
+# NMEA2000 C++ library
+add_library(NMEA2000 OBJECT)
+target_sources(NMEA2000 PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/NMEA2000.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kMsg.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kMessages.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kStream.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kTimer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kGroupFunction.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kGroupFunctionDefaultHandlers.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000-master/N2kDeviceList.cpp
+)
+target_link_libraries(NMEA2000 PUBLIC stm32cubemx)
+
+# STM32_CAN library
+add_library(STM32_CAN OBJECT)
+target_sources(STM32_CAN PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/STM32_CAN-main/STM32_CAN.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/STM32_CAN-main/scheduler.cpp
+)
+target_link_libraries(STM32_CAN PUBLIC stm32cubemx)
+
+# NMEA2000_STM32 adapter
+add_library(NMEA2000_STM32 OBJECT)
+target_sources(NMEA2000_STM32 PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000_STM32-master/NMEA2000_STM32.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Core/Libs/NMEA2000_STM32-master/N2kStream_STM32.cpp
+)
+target_link_libraries(NMEA2000_STM32 PUBLIC stm32cubemx)
+
 # Link directories setup
 set(MX_LINK_DIRS
 
@@ -68,6 +103,9 @@ set(MX_LINK_DIRS
 set(MX_LINK_LIBS 
     STM32_Drivers
     ADS1118
+    NMEA2000
+    STM32_CAN
+    NMEA2000_STM32
     ${TOOLCHAIN_LINK_LIBRARIES}
     m
 )
