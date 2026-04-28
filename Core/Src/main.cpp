@@ -325,7 +325,7 @@ static void NMEA2000_Init(tNMEA2000_STM32 *N2k)
                              1);                           // Load equivalency: 1 × 50 mA
 
   N2k->SetDeviceInformation(unique_number,
-                            130,   // Device function = Temperature
+                            160,   // Device function = Temperature
                             85,    // Device class    = External Environment
                             2046); // Manufacturer code
 
