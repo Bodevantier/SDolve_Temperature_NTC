@@ -38,13 +38,19 @@ void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 9;
+  // CAN bit timing for 250 kbps. Prescaler comes from main.h so that it
+  // tracks POWER_SAVE_LOW_CLOCK automatically:
+  //   PCLK1 = 36 MHz -> prescaler 9 -> 4 MHz TQ clock
+  //   PCLK1 =  8 MHz -> prescaler 2 -> 4 MHz TQ clock
+  // TQ per bit = 1 + BS1(12) + BS2(3) = 16  ->  4 MHz / 16 = 250 kbps
+  // Sample point = (1 + 12) / 16 = 81.25 %  (NMEA 2000 / CiA recommended)
+  hcan.Init.Prescaler = N2K_CAN_PRESCALER;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_12TQ;
   hcan.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
-  hcan.Init.AutoBusOff = DISABLE;
+  hcan.Init.AutoBusOff = ENABLE;   // bxCAN auto-recovers after 128*11 recessive bits
   hcan.Init.AutoWakeUp = DISABLE;
   hcan.Init.AutoRetransmission = DISABLE;
   hcan.Init.ReceiveFifoLocked = DISABLE;

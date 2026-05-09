@@ -56,7 +56,9 @@ ENTRY(Reset_Handler)
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 20K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 128K
+/* Last 1KB flash page (0x0801FC00..0x0801FFFF) reserved for n2k_storage
+ * (NMEA 2000 source address persistence). */
+FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 127K
 }
 
 /* Highest address of the user mode stack */

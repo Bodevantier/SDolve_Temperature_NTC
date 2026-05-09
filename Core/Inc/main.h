@@ -47,6 +47,31 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+/* ----------------------------------------------------------------------------
+ * POWER_SAVE_LOW_CLOCK
+ *   0 = Default. SYSCLK = 72 MHz (HSE 8 MHz x PLL9), PCLK1 = 36 MHz.
+ *   1 = SYSCLK = HCLK = PCLK1 = PCLK2 = 8 MHz (HSE bypass, PLL OFF,
+ *       FLASH_LATENCY_0). Saves ~15-20 mA on the MCU core.
+ *
+ * Both `SystemClock_Config()` (main.cpp) and `MX_CAN_Init()` (can.c) read
+ * this macro and pick consistent settings. The CAN bit timing is recomputed
+ * to keep 250 kbps with the same 81.25 % sample point at either PCLK1.
+ *
+ * Test procedure: set to 1, flash, verify the node appears on the bus and
+ * the temperature reading is stable. Revert to 0 if N2K traffic is lost.
+ * --------------------------------------------------------------------------*/
+#ifndef POWER_SAVE_LOW_CLOCK
+#define POWER_SAVE_LOW_CLOCK 0
+#endif
+
+#if POWER_SAVE_LOW_CLOCK
+  /* PCLK1 = 8 MHz: prescaler 2 -> 4 MHz TQ clock, 16 TQ/bit -> 250 kbps. */
+  #define N2K_CAN_PRESCALER 2u
+#else
+  /* PCLK1 = 36 MHz: prescaler 9 -> 4 MHz TQ clock, 16 TQ/bit -> 250 kbps. */
+  #define N2K_CAN_PRESCALER 9u
+#endif
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

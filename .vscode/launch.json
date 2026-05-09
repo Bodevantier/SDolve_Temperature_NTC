@@ -1,5 +1,8 @@
 {
     "configurations": [
+        
+        
+        
         {
             "name": "Normal",
             "type": "stlinkgdbtarget",
